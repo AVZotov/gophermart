@@ -1,23 +1,30 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+### Go.AllowList template
+# Allowlisting gitignore template for GO projects prevents us
+# from adding various unwanted local files, such as generated
+# files, developer configurations or IDE-specific files etc.
+#
+# Recommended: Go.AllowList.gitignore
 
-# Test binary, built with `go test -c`
-*.test
+# Ignore everything
+*
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# But not these files...
+!/.gitignore
 
-# Binaries
-cmd/gophermart/main
-cmd/gophermart/gophermart
+!*.go
+!go.sum
+!go.mod
 
-# Dependency directories (remove the comment below to include it)
-vendor/
+!README.md
+!LICENSE
 
-# IDEs directories
-.idea
-.vscode
+!SPECIFICATION.md
+
+!*.sql
+!*.yml
+!*.yaml
+!Dockerfile
+
+# ...even if they are in subdirectories
+!*/
+
