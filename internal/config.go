@@ -13,11 +13,25 @@ type Config struct {
 	AccrualSystemAddress string
 }
 
-func Load() *Config {
-	return &Config{}
+// Load initiate new config getting data through flags or ENV.
+// Arguments must be provided or error will return.
+// Flag arguments prevail on ENV arguments
+func Load() (*Config, error) {
+	cfg := new(Config)
+	if err := parseFlag(cfg); err != nil {
+		return nil, err
+	}
+	if err := parseEnv(cfg); err != nil {
+		return nil, err
+	}
+	if err := validate(cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
-func (c *Config) parseFlag() error {
+func parseFlag(c *Config) error {
 	flag.StringVar(&c.RunAddress, "a", "", "server address to listen on")
 	flag.StringVar(&c.DataBaseURI, "d", "", "database URI")
 	flag.StringVar(&c.AccrualSystemAddress, "r", "", "system address of accrual system")
@@ -35,7 +49,7 @@ func (c *Config) parseFlag() error {
 	return nil
 }
 
-func (c *Config) parseEnv() error {
+func parseEnv(c *Config) error {
 	if c.RunAddress == "" {
 		c.RunAddress = os.Getenv("RUN_ADDRESS")
 	}
@@ -48,7 +62,7 @@ func (c *Config) parseEnv() error {
 	return nil
 }
 
-func (c *Config) validate() error {
+func validate(c *Config) error {
 	if c.RunAddress == "" {
 		return errors.New("no server address provided")
 	}
