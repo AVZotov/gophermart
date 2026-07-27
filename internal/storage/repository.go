@@ -1,4 +1,4 @@
-package repository
+package storage
 
 import (
 	"context"
@@ -6,20 +6,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Repository struct {
+type Storage struct {
 	pool *pgxpool.Pool
 }
 
-func New(ctx context.Context, dsn string) (*Repository, error) {
+func New(ctx context.Context, dsn string) (*Storage, error) {
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}
 
 	if err = pool.Ping(ctx); err != nil {
+		pool.Close()
 		return nil, err
 	}
-	return &Repository{
+	return &Storage{
 		pool: pool,
 	}, nil
 }
