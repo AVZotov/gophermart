@@ -24,3 +24,7 @@ func New(ctx context.Context, dsn string) (*Storage, error) {
 		pool: pool,
 	}, nil
 }
+
+func (s *Storage) Close() {
+	s.pool.Close()
+}

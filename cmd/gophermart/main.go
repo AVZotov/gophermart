@@ -32,13 +32,14 @@ func run(l logger.Logger) error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	//db
+	//store
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, err = storage.New(ctx, cfg.DatabaseURI)
+	store, err := storage.New(ctx, cfg.DatabaseURI)
 	if err != nil {
 		return fmt.Errorf("connect to database: %w", err)
 	}
+	defer store.Close()
 
 	//migrations
 	if err := storage.RunMigrations(ctx, cfg.DatabaseURI); err != nil {
