@@ -3,7 +3,7 @@ package config
 import (
 	"errors"
 	"flag"
-	"log"
+	"fmt"
 	"os"
 )
 
@@ -18,7 +18,7 @@ type Config struct {
 // Flag arguments prevail on ENV arguments
 func Load() (*Config, error) {
 	cfg := new(Config)
-	if err := parseFlag(cfg); err != nil {
+	if err := parseFlag(cfg, os.Args[1:]); err != nil {
 		return nil, err
 	}
 	if err := parseEnv(cfg); err != nil {
@@ -31,19 +31,18 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-func parseFlag(c *Config) error {
-	flag.StringVar(&c.RunAddress, "a", "", "server address to listen on")
-	flag.StringVar(&c.DatabaseURI, "d", "", "database URI")
-	flag.StringVar(&c.AccrualSystemAddress, "r", "", "system address of accrual system")
+func parseFlag(c *Config, args []string) error {
+	fs := flag.NewFlagSet("gophermart", flag.ContinueOnError)
+	fs.StringVar(&c.RunAddress, "a", "", "server address to listen on")
+	fs.StringVar(&c.DatabaseURI, "d", "", "database URI")
+	fs.StringVar(&c.AccrualSystemAddress, "r", "", "system address of accrual system")
 
-	flag.Parse()
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
 
-	if flag.NArg() > 0 {
-		for _, arg := range flag.Args() {
-			log.Printf("unknown argument: %s\n", arg)
-		}
-		flag.Usage()
-		return errors.New("unknown flag argument provided")
+	if fs.NArg() > 0 {
+		return fmt.Errorf("unknown flag argument provided: %v", fs.Args())
 	}
 
 	return nil

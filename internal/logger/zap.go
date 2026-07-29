@@ -18,19 +18,19 @@ func NewZapLogger() (Logger, error) {
 }
 
 func (z *zapLogger) Debug(msg string, args ...interface{}) {
-	z.sugar.Debugf(msg, args...)
+	z.sugar.Debugw(msg, args...)
 }
 
 func (z *zapLogger) Info(msg string, args ...interface{}) {
-	z.sugar.Infof(msg, args...)
+	z.sugar.Infow(msg, args...)
 }
 
 func (z *zapLogger) Warn(msg string, args ...interface{}) {
-	z.sugar.Warnf(msg, args...)
+	z.sugar.Warnw(msg, args...)
 }
 
 func (z *zapLogger) Error(msg string, args ...interface{}) {
-	z.sugar.Errorf(msg, args...)
+	z.sugar.Errorw(msg, args...)
 }
 
 func (z *zapLogger) Sync() error {
