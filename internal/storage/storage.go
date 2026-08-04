@@ -3,28 +3,19 @@ package storage
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/AVZotov/gophermart/internal/domain"
 )
 
-type Storage struct {
-	pool *pgxpool.Pool
-}
-
-func New(ctx context.Context, dsn string) (*Storage, error) {
-	pool, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = pool.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, err
-	}
-	return &Storage{
-		pool: pool,
-	}, nil
-}
-
-func (s *Storage) Close() {
-	s.pool.Close()
+// Storage is the persistence interface required by the service layer. It
+// performs CRUD operations only; business logic and validation live in
+// internal/service.
+type Storage interface {
+	// CreateUser inserts user and returns its generated ID. It returns
+	// domain.ErrUserExists if the login is already taken.
+	CreateUser(ctx context.Context, user *domain.User) (int64, error)
+	// GetUserByLogin fetches the user with the given login. It returns
+	// domain.ErrUserNotFound if no such user exists.
+	GetUserByLogin(ctx context.Context, login string) (*domain.User, error)
+	// Close releases any resources held by the implementation.
+	Close()
 }

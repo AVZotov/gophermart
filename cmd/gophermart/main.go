@@ -7,10 +7,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/AVZotov/gophermart/internal/config"
+	"github.com/AVZotov/gophermart/internal/handler"
 	"github.com/AVZotov/gophermart/internal/logger"
+	"github.com/AVZotov/gophermart/internal/service"
 	"github.com/AVZotov/gophermart/internal/storage"
 )
 
@@ -51,18 +55,49 @@ func run(l logger.Logger) error {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 
+	secret := []byte(cfg.JWTSecret)
+	svc := service.NewService(store, secret)
+	h := handler.NewHandler(svc, l)
+	router := handler.NewRouter(h, l, secret)
+
 	srv := &http.Server{
 		Addr:              cfg.RunAddress,
-		Handler:           http.NewServeMux(),
+		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-	l.Info("starting server", "address", cfg.RunAddress)
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("run server: %w", err)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	serverErr := make(chan error, 1)
+	go func() {
+		l.Info("starting server", "address", cfg.RunAddress)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- fmt.Errorf("run server: %w", err)
+			return
+		}
+		serverErr <- nil
+	}()
+
+	select {
+	case <-ctx.Done():
+		l.Info("shutdown signal received")
+	case err := <-serverErr:
+		if err != nil {
+			return err
+		}
 	}
 
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shutdown server: %w", err)
+	}
+
+	l.Info("server stopped gracefully")
 	return nil
 }
