@@ -7,10 +7,13 @@ import (
 	"os"
 )
 
+// Config holds application settings resolved from command-line flags and
+// environment variables.
 type Config struct {
 	RunAddress           string
 	DatabaseURI          string
 	AccrualSystemAddress string
+	JWTSecret            string
 }
 
 // Load initiate new config getting data through flags or ENV.
@@ -36,6 +39,7 @@ func parseFlag(c *Config, args []string) error {
 	fs.StringVar(&c.RunAddress, "a", "", "server address to listen on")
 	fs.StringVar(&c.DatabaseURI, "d", "", "database URI")
 	fs.StringVar(&c.AccrualSystemAddress, "r", "", "system address of accrual system")
+	fs.StringVar(&c.JWTSecret, "j", "", "jwt secret")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -59,6 +63,10 @@ func parseEnv(c *Config) error {
 		c.AccrualSystemAddress = os.Getenv("ACCRUAL_SYSTEM_ADDRESS")
 	}
 
+	if c.JWTSecret == "" {
+		c.JWTSecret = os.Getenv("JWT_SECRET")
+	}
+
 	return nil
 }
 
@@ -71,6 +79,9 @@ func validate(c *Config) error {
 	}
 	if c.AccrualSystemAddress == "" {
 		return errors.New("system address is required")
+	}
+	if c.JWTSecret == "" {
+		return errors.New("jwt secret is required")
 	}
 
 	return nil
