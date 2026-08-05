@@ -111,6 +111,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Authorization", "Bearer "+token)
 	h.writeJSON(w, http.StatusOK, authResponse{Token: token})
 }
 
@@ -139,6 +140,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Authorization", "Bearer "+token)
 	h.writeJSON(w, http.StatusOK, authResponse{Token: token})
 }
 
