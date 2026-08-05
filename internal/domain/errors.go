@@ -15,4 +15,12 @@ var (
 	// ErrPasswordTooLong is returned when the provided password exceeds
 	// bcrypt's 72-byte input limit.
 	ErrPasswordTooLong = errors.New("password too long")
+	// ErrInvalidOrderID is returned when the provided order number fails Luhn validation.
+	ErrInvalidOrderID = errors.New("invalid order id")
+	// ErrOrderOwnedByAnotherUser is returned when the order number was already
+	// uploaded by a different user, surfaced via the unique constraint on order_number.
+	ErrOrderOwnedByAnotherUser = errors.New("order owned by another user")
+	// ErrOrderAlreadyUploaded is returned when the same user re-uploads an order
+	// number they already own; not a failure, the handler maps this to 200.
+	ErrOrderAlreadyUploaded = errors.New("order already uploaded")
 )

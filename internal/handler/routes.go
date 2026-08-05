@@ -23,6 +23,8 @@ func register(mux *chi.Mux, h *Handler, secret []byte) {
 	mux.Group(
 		func(mux chi.Router) {
 			mux.Use(auth.AuthMiddleware(secret))
+			mux.Post("/api/user/orders", h.uploadOrder)
+			mux.Get("/api/user/orders", h.getOrders)
 		},
 	)
 }

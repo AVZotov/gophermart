@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+const defaultJWTSecret = "gophermart-default-secret"
+
 // Config holds application settings resolved from command-line flags and
 // environment variables.
 type Config struct {
@@ -39,7 +41,7 @@ func parseFlag(c *Config, args []string) error {
 	fs.StringVar(&c.RunAddress, "a", "", "server address to listen on")
 	fs.StringVar(&c.DatabaseURI, "d", "", "database URI")
 	fs.StringVar(&c.AccrualSystemAddress, "r", "", "system address of accrual system")
-	fs.StringVar(&c.JWTSecret, "j", "", "jwt secret")
+	fs.StringVar(&c.JWTSecret, "j", defaultJWTSecret, "jwt secret")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -79,9 +81,6 @@ func validate(c *Config) error {
 	}
 	if c.AccrualSystemAddress == "" {
 		return errors.New("system address is required")
-	}
-	if c.JWTSecret == "" {
-		return errors.New("jwt secret is required")
 	}
 
 	return nil

@@ -72,3 +72,22 @@ func (s *Service) Login(ctx context.Context, login, rawPassword string) (string,
 
 	return auth.GenerateToken(user.ID, s.secret)
 }
+
+// UploadOrder validates orderNumber (Luhn) and registers it for userID. It
+// returns domain.ErrInvalidOrderID if the number fails validation,
+// domain.ErrOrderAlreadyUploaded if userID already uploaded this order, or
+// domain.ErrOrderOwnedByAnotherUser if another user did.
+func (s *Service) UploadOrder(ctx context.Context, userID int64, orderNumber string) error {
+	order, err := domain.NewOrder(orderNumber)
+	if err != nil {
+		return err
+	}
+
+	return s.store.CreateOrder(ctx, order, userID)
+}
+
+// GetOrders returns all orders uploaded by userID, ordered by upload time
+// descending.
+func (s *Service) GetOrders(ctx context.Context, userID int64) ([]*domain.Order, error) {
+	return s.store.GetOrdersByUserID(ctx, userID)
+}

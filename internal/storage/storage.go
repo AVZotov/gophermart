@@ -16,6 +16,13 @@ type Storage interface {
 	// GetUserByLogin fetches the user with the given login. It returns
 	// domain.ErrUserNotFound if no such user exists.
 	GetUserByLogin(ctx context.Context, login string) (*domain.User, error)
+	// CreateOrder inserts order for userID. It returns
+	// domain.ErrOrderAlreadyUploaded if userID already uploaded this order
+	// number, or domain.ErrOrderOwnedByAnotherUser if another user did.
+	CreateOrder(ctx context.Context, order *domain.Order, userID int64) error
+	// GetOrdersByUserID fetches all orders uploaded by userID, ordered by
+	// upload time descending.
+	GetOrdersByUserID(ctx context.Context, userID int64) ([]*domain.Order, error)
 	// Close releases any resources held by the implementation.
 	Close()
 }
