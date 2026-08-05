@@ -11,8 +11,10 @@ import (
 )
 
 type fakeStorage struct {
-	createUserFunc     func(ctx context.Context, user *domain.User) (int64, error)
-	getUserByLoginFunc func(ctx context.Context, login string) (*domain.User, error)
+	createUserFunc        func(ctx context.Context, user *domain.User) (int64, error)
+	getUserByLoginFunc    func(ctx context.Context, login string) (*domain.User, error)
+	createOrderFunc       func(ctx context.Context, order *domain.Order, userID int64) error
+	getOrdersByUserIDFunc func(ctx context.Context, userID int64) ([]*domain.Order, error)
 }
 
 func (f *fakeStorage) CreateUser(ctx context.Context, user *domain.User) (int64, error) {
@@ -21,6 +23,14 @@ func (f *fakeStorage) CreateUser(ctx context.Context, user *domain.User) (int64,
 
 func (f *fakeStorage) GetUserByLogin(ctx context.Context, login string) (*domain.User, error) {
 	return f.getUserByLoginFunc(ctx, login)
+}
+
+func (f *fakeStorage) CreateOrder(ctx context.Context, order *domain.Order, userID int64) error {
+	return f.createOrderFunc(ctx, order, userID)
+}
+
+func (f *fakeStorage) GetOrdersByUserID(ctx context.Context, userID int64) ([]*domain.Order, error) {
+	return f.getOrdersByUserIDFunc(ctx, userID)
 }
 
 func (f *fakeStorage) Close() {}
@@ -104,4 +114,91 @@ func TestService_Login_UserNotFound(t *testing.T) {
 
 	require.ErrorIs(t, err, domain.ErrInvalidCredentials)
 	assert.Empty(t, token)
+}
+
+func TestService_UploadOrder_Success(t *testing.T) {
+	store := &fakeStorage{
+		createOrderFunc: func(ctx context.Context, order *domain.Order, userID int64) error {
+			assert.Equal(t, "79927398713", order.Number)
+			assert.Equal(t, int64(1), userID)
+			return nil
+		},
+	}
+	svc := NewService(store, testSecret)
+
+	err := svc.UploadOrder(context.Background(), 1, "79927398713")
+
+	require.NoError(t, err)
+}
+
+func TestService_UploadOrder_InvalidNumber(t *testing.T) {
+	store := &fakeStorage{
+		createOrderFunc: func(ctx context.Context, order *domain.Order, userID int64) error {
+			t.Fatal("storage should not be called for an invalid order number")
+			return nil
+		},
+	}
+	svc := NewService(store, testSecret)
+
+	err := svc.UploadOrder(context.Background(), 1, "12345678900")
+
+	require.ErrorIs(t, err, domain.ErrInvalidOrderID)
+}
+
+func TestService_UploadOrder_AlreadyUploadedByOwner(t *testing.T) {
+	store := &fakeStorage{
+		createOrderFunc: func(ctx context.Context, order *domain.Order, userID int64) error {
+			return domain.ErrOrderAlreadyUploaded
+		},
+	}
+	svc := NewService(store, testSecret)
+
+	err := svc.UploadOrder(context.Background(), 1, "79927398713")
+
+	require.ErrorIs(t, err, domain.ErrOrderAlreadyUploaded)
+}
+
+func TestService_UploadOrder_OwnedByAnotherUser(t *testing.T) {
+	store := &fakeStorage{
+		createOrderFunc: func(ctx context.Context, order *domain.Order, userID int64) error {
+			return domain.ErrOrderOwnedByAnotherUser
+		},
+	}
+	svc := NewService(store, testSecret)
+
+	err := svc.UploadOrder(context.Background(), 1, "79927398713")
+
+	require.ErrorIs(t, err, domain.ErrOrderOwnedByAnotherUser)
+}
+
+func TestService_GetOrders_Success(t *testing.T) {
+	want := []*domain.Order{
+		{Number: "79927398713", Status: domain.OrderStatusNew},
+	}
+	store := &fakeStorage{
+		getOrdersByUserIDFunc: func(ctx context.Context, userID int64) ([]*domain.Order, error) {
+			assert.Equal(t, int64(1), userID)
+			return want, nil
+		},
+	}
+	svc := NewService(store, testSecret)
+
+	orders, err := svc.GetOrders(context.Background(), 1)
+
+	require.NoError(t, err)
+	assert.Equal(t, want, orders)
+}
+
+func TestService_GetOrders_StorageError(t *testing.T) {
+	store := &fakeStorage{
+		getOrdersByUserIDFunc: func(ctx context.Context, userID int64) ([]*domain.Order, error) {
+			return nil, assert.AnError
+		},
+	}
+	svc := NewService(store, testSecret)
+
+	orders, err := svc.GetOrders(context.Background(), 1)
+
+	require.ErrorIs(t, err, assert.AnError)
+	assert.Nil(t, orders)
 }
